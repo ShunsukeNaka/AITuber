@@ -42,11 +42,14 @@ class YouTubeChatReader:
             print(comment)
     """
 
+    _SEEN_IDS_MAX = 500  # メモリリーク防止のため保持する最大ID数
+
     def __init__(self, config: YouTubeConfig):
         self._config = config
         self._live_chat_id: str | None = None
         self._page_token: str | None = None
         self._next_wait_sec: float = config.polling_interval_sec  # 次回ポーリングまでの待機秒数
+        self._seen_ids: set[str] = set()  # 既取得コメントID（重複反応防止）
 
     async def initialize(self) -> None:
         """video_id から live_chat_id を取得し、起動前の古いコメントを無視するため初回pageTokenを取得する"""
@@ -203,12 +206,17 @@ class YouTubeChatReader:
         items からテキストコメントを抽出する。
 
         除外対象:
+          - 既取得コメント（同一IDへの重複反応防止）
           - スーパーチャット・スーパーステッカー（type != textMessageEvent）
           - Bot コメント（authorDetails.isChatBot == True）
           - 空テキスト
         """
         result = []
         for item in items:
+            msg_id: str = item.get("id", "")
+            if msg_id in self._seen_ids:
+                continue
+
             author = item.get("authorDetails", {})
             if author.get("isChatBot"):
                 continue
@@ -219,6 +227,12 @@ class YouTubeChatReader:
 
             text: str = snippet.get("textMessageDetails", {}).get("messageText", "").strip()
             if text:
+                self._seen_ids.add(msg_id)
                 result.append(text)
+
+        # seen_ids が肥大化しないよう古いエントリを間引く
+        if len(self._seen_ids) > self._SEEN_IDS_MAX:
+            overflow = len(self._seen_ids) - self._SEEN_IDS_MAX
+            self._seen_ids = set(list(self._seen_ids)[overflow:])
 
         return result
