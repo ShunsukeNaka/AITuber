@@ -24,6 +24,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from aivtuber.utils.alsa import suppress_alsa_errors
+suppress_alsa_errors()
+
 from aivtuber.core.brain import Brain
 from aivtuber.core.config import load_config
 from aivtuber.tts.voicevox import VoicevoxClient
