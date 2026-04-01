@@ -110,9 +110,9 @@ async def silence_monitor(
     cfg: SmallTalkConfig,
     avatar,
 ) -> None:
-    """1秒ごとに沈黙時間をチェックし、閾値を超えたら自発発話する"""
+    """0.3秒ごとに沈黙時間をチェックし、閾値を超えたら自発発話する"""
     while True:
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.3)
 
         if not cfg.enabled or state.is_ai_speaking.is_set():
             continue
@@ -131,7 +131,7 @@ async def silence_monitor(
             try:
                 await state.small_talk_task
                 state.last_small_talk_time = time.monotonic()
-                state.last_interaction_time = time.monotonic()
+                # last_interaction_time は更新しない → 小発話後も即次の発話へ続く
             except asyncio.CancelledError:
                 pass
             finally:
