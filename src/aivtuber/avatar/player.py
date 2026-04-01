@@ -34,21 +34,25 @@ async def speak(
 
     loop = asyncio.get_event_loop()
 
-    def _is_playing() -> bool:
-        try:
-            return sd.get_stream().active
-        except Exception:
-            return False
-
     try:
         wav = await tts.synthesize(text, **tts_params)
         await avatar.set_emotion(emotion_name)
         data, sr = sf.read(io.BytesIO(wav))
         sd.play(data, sr)
-        # 再生中は50msごとに口パクを更新（VTSフェイストラッキング上書き対策）
-        while await loop.run_in_executor(None, _is_playing):
+
+        # sd.wait() をスレッドで実行しつつ、口パクを並行更新
+        # _is_playing() だけを終了条件にすると再生が途切れることがある
+        play_done = asyncio.Event()
+
+        async def _wait_playback():
+            await loop.run_in_executor(None, sd.wait)
+            play_done.set()
+
+        playback_task = asyncio.create_task(_wait_playback())
+        while not play_done.is_set():
             await avatar.set_mouth_open(0.8)
             await asyncio.sleep(0.05)
+        await playback_task
     except Exception as e:
         print(f"\n[TTS エラー: {e}]")
     finally:
