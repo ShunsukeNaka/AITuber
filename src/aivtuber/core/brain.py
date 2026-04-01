@@ -132,7 +132,8 @@ class Brain:
         if char.emotions:
             names = "、".join(char.emotions.keys())
             emotion_instruction = (
-                f"\n感情を表現したいときは <emotion>感情名</emotion> タグを文中に埋め込んでください。"
+                f"\n感情を表現したいときは <emotion>感情名</emotion> タグを文末に1つだけ付けてください。"
+                f"タグの中にテキストを入れないでください（例: <emotion>happy</emotion> は正しい、<happy>テキスト</happy> は誤り）。"
                 f"使える感情: {names}"
             )
 

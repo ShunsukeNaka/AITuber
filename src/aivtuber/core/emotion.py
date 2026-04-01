@@ -97,11 +97,14 @@ class EmotionDetector:
         """LLMが出力した感情タグ・thinkingブロックをテキストから除去する"""
         # <thinking>...</thinking> ブロックを除去（qwen2.5等のCoTモデル対策）
         text = re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.IGNORECASE | re.DOTALL)
-        # <emotion>name</emotion> タグを除去
+        # <emotion>name</emotion> タグを除去（タグのみ、内容は保持）
         text = re.sub(r"<emotion>.*?</emotion>", "", text, flags=re.IGNORECASE)
-        # 短縮形タグ <happy>, </happy> 等を除去
+        # 短縮形タグ <happy>, </happy> 等を除去（既知感情名）
         emotion_names = "|".join(re.escape(name) for name in self._emotions)
         text = re.sub(rf"</?(?:{emotion_names})\b[^>]*>", "", text, flags=re.IGNORECASE)
+        # 未知のXMLタグを除去（タグのみ除去、内容は保持）
+        # 例: <empathy>かわいい</empathy> → かわいい
+        text = re.sub(r"</?[a-zA-Z_][a-zA-Z0-9_]*\b[^>]*>", "", text)
         return text.strip()
 
     def get_tts_params(self, emotion: EmotionResult) -> dict:
