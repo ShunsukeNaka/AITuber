@@ -83,7 +83,9 @@ async def main(config_path: str, use_tts: bool) -> None:
             try:
                 user_input = await asyncio.wait_for(
                     _async_input("あなた: "),
-                    timeout=st_cfg.silence_timeout_sec if st_cfg.enabled else None,
+                    # silence_timeout_sec はvoice/youtube用の短い値になっているため
+                    # chat.py では最低10秒確保してタイプできるようにする
+                    timeout=max(st_cfg.silence_timeout_sec, 10.0) if st_cfg.enabled else None,
                 )
             except asyncio.TimeoutError:
                 print("\r" + " " * 20 + "\r", end="", flush=True)
