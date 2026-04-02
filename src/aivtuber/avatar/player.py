@@ -52,19 +52,9 @@ async def speak(
         # 再生は直列化（複数タスクが同時に sd.play() するのを防ぐ）
         async with _get_audio_lock():
             await avatar.set_emotion(emotion_name)
-            sd.play(data, sr)
-
-            play_done = asyncio.Event()
-
-            async def _wait_playback():
-                await loop.run_in_executor(None, sd.wait)
-                play_done.set()
-
-            playback_task = asyncio.create_task(_wait_playback())
-            while not play_done.is_set():
-                await avatar.set_mouth_open(0.8)
-                await asyncio.sleep(0.05)
-            await playback_task
+            await avatar.set_mouth_open(0.8)
+            # play と wait を同一スレッドで実行し途中割り込みを防ぐ
+            await loop.run_in_executor(None, lambda: (sd.play(data, sr), sd.wait()))
     except Exception as e:
         print(f"\n[TTS エラー: {e}]")
     finally:
